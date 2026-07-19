@@ -5,8 +5,11 @@ journey (Jul 2026 → Dec 2030): daily rhythm and non-negotiables, milestone +
 OKR timeline, weekly scorecard, and the decision compass.
 
 Built from the high-fidelity design handoff (`design_handoff_mova_strategy`):
-React 19 + TanStack Start (SSR on a Cloudflare Worker) with **Supabase** for
-authentication and cross-device sync.
+a static React 19 + Vite single-page app with **Supabase** for authentication
+and cross-device sync, deployed to **GitHub Pages** by the workflow in
+`.github/workflows/deploy.yml`.
+
+Live URL: https://yusuf-ayran.github.io/claude/
 
 ## How sync works
 
@@ -28,9 +31,10 @@ authentication and cross-device sync.
 4. Get the **Project URL** and **anon (public) key** from
    **Settings → API**.
 5. Either:
-   - configure them as deployment secrets `SUPABASE_URL` and
-     `SUPABASE_ANON_KEY` (served to the client by a server function — the
-     anon key is public by design; RLS protects the data), **or**
+   - add them as GitHub **repository variables** named `SUPABASE_URL` and
+     `SUPABASE_ANON_KEY` (Settings → Secrets and variables → Actions →
+     Variables) and re-run the deploy workflow — the connection is then baked
+     into the site for every device, **or**
    - open the app, tap the small **“LOCAL ONLY · SET UP SYNC”** control in
      the footer, and paste both values there (stored per device).
 6. In the footer sync panel, enter your email → **SEND MAGIC LINK** → open
@@ -39,18 +43,23 @@ authentication and cross-device sync.
 ## Development
 
 ```bash
-cd app
-bun install
-bun run dev        # local dev server
-bun run typecheck  # tsc --noEmit
-bun run build      # production build
+npm install
+npm run dev      # local dev server
+npm run build    # typecheck + production build (dist/)
 ```
 
 Key code:
 
-- `app/src/mova/` — the whole app: `data.ts` (seed content from the handoff),
+- `src/mova/` — the whole app: `data.ts` (seed content from the handoff),
   `model.ts` (state shape + date/countdown logic), `useSync.ts` (Supabase
   auth + sync), views per tab, `mova.css` (interaction states).
-- `app/src/lib/api/supabase.functions.ts` — serves the Supabase config from
-  deployment secrets.
 - `supabase/schema.sql` — the database schema + RLS policies.
+- `design-brief.md` — the locked design (palette, type, spacing) from the
+  handoff.
+
+## Deployment
+
+Every push to this branch runs the GitHub Pages workflow: build, upload,
+deploy. Pages must be allowed to deploy from Actions (the workflow enables
+this automatically on first run; if it fails once, set Settings → Pages →
+Source to "GitHub Actions" and re-run).
