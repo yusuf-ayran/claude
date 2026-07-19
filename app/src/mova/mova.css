@@ -1,0 +1,77 @@
+/* MOVA design tokens — global surface + interaction states.
+ * Inline styles carry the layout; these classes carry hover/focus states
+ * (which inline styles cannot express) so they need !important to win. */
+
+body {
+  margin: 0;
+  background: #fdfdfb;
+  color: #12291e;
+  -webkit-font-smoothing: antialiased;
+  font-family: Inter, Helvetica, Arial, sans-serif;
+}
+
+::selection {
+  background: #dce7df;
+  color: #12291e;
+}
+
+a {
+  color: #1f4d3a;
+}
+a:hover {
+  color: #12291e;
+}
+
+input[type="range"] {
+  accent-color: #1f4d3a;
+}
+
+.mv-check-row:hover {
+  background: #dce7df !important;
+}
+
+.mv-ms-row:hover {
+  border-color: #a3c0ac !important;
+}
+
+.mv-btn:hover {
+  background: #12291e !important;
+}
+
+.mv-daylink:hover {
+  color: #1f4d3a !important;
+}
+
+.mv-textlink:hover {
+  color: #12291e !important;
+}
+
+.mv-x:hover {
+  color: #1f4d3a !important;
+}
+
+.mv-editbtn:hover {
+  color: #1f4d3a !important;
+  background: #dce7df !important;
+}
+
+.mv-input:focus {
+  border-bottom-color: #1f4d3a !important;
+  outline: none;
+}
+
+.mv-input-done:focus {
+  border-bottom-color: #1f4d3a !important;
+  outline: none;
+}
+
+.mv-faintlink:hover {
+  color: #5f7a6c !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
