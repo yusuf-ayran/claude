@@ -28,13 +28,10 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          # Optional: set these as repository variables (Settings → Secrets and
-          # variables → Actions → Variables) to bake the Supabase connection
-          # into the build. The anon key is public by design; Row Level
-          # Security protects the data. Without them the app runs local-only
-          # until the config is pasted in the footer sync panel.
-          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          # The Supabase connection baked into the build. The anon key is
+          # public by design; Row Level Security protects the data.
+          VITE_SUPABASE_URL: https://dpgdqroenesnbkunyvrd.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwZ2Rxcm9lbmVzbmJrdW55dnJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NjcxNzgsImV4cCI6MjEwMDA0MzE3OH0.cuhIzFCmVShfGrtOpoKFleHvSMATNoVF6uDm1Shzg8I
       - uses: actions/configure-pages@v5
         with:
           enablement: true
