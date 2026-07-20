@@ -173,9 +173,11 @@ export function useSync(
     async (email: string) => {
       if (!client) return;
       setErrorMsg("");
+      // Redirect back to the app's full URL (origin alone would drop the
+      // /<repo>/ path GitHub Pages serves the app under).
       const { error } = await client.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: window.location.href.split(/[?#]/)[0] },
       });
       if (error) setErrorMsg(error.message);
       else setLinkSent(true);
