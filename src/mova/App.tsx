@@ -83,9 +83,23 @@ export function MovaApp() {
       const d = { ...state.daily };
       if (d["d" + i]) delete d["d" + i];
       else d["d" + i] = true;
-      mutate({ daily: d, dailyDate: todayISO });
+      // Record today's completion count so streaks + momentum have history.
+      const count = Object.keys(d).length;
+      mutate({
+        daily: d,
+        dailyDate: todayISO,
+        dailyLog: { ...state.dailyLog, [todayISO]: count },
+      });
     },
-    [state.daily, todayISO, mutate],
+    [state.daily, state.dailyLog, todayISO, mutate],
+  );
+
+  const setJournal = useCallback(
+    (field: "one" | "review", value: string) => {
+      const cur = state.journal[todayISO] || {};
+      mutate({ journal: { ...state.journal, [todayISO]: { ...cur, [field]: value } } });
+    },
+    [state.journal, todayISO, mutate],
   );
 
   const setMsEdit = useCallback(
@@ -206,6 +220,7 @@ export function MovaApp() {
           todayISO={todayISO}
           countdown={countdown}
           toggleDaily={toggleDaily}
+          setJournal={setJournal}
           goJourney={() => setTab("journey")}
           goOS={() => setTab("os")}
         />

@@ -1,5 +1,5 @@
 import { DAILY, RHYTHM, YEARS } from "./data";
-import { fmtDate, isDone, journeyDays, type SyncedState } from "./model";
+import { computeStreak, fmtDate, isDone, journeyDays, type SyncedState } from "./model";
 import { CheckRow, Kicker, TrackPill } from "./bits";
 
 export function TodayView({
@@ -8,6 +8,7 @@ export function TodayView({
   todayISO,
   countdown,
   toggleDaily,
+  setJournal,
   goJourney,
   goOS,
 }: {
@@ -16,6 +17,7 @@ export function TodayView({
   todayISO: string;
   countdown: string;
   toggleDaily: (i: number) => void;
+  setJournal: (field: "one" | "review", value: string) => void;
   goJourney: () => void;
   goOS: () => void;
 }) {
@@ -29,6 +31,8 @@ export function TodayView({
   DAILY.forEach((_, i) => {
     if (state.daily["d" + i]) dailyCount++;
   });
+  const streak = computeStreak(state.dailyLog, todayISO, DAILY.length);
+  const journal = state.journal[todayISO] || {};
 
   // Next milestone = earliest-due unchecked milestone.
   let next: { label: string; due: string; track: string; q: string } | null = null;
@@ -180,11 +184,83 @@ export function TodayView({
         </div>
       ) : null}
 
+      {/* Today's journal — the ONE THING and the evening review */}
+      <div style={{ background: "#EDF2EE", borderRadius: 10, padding: "22px 24px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2.2, color: "#1F4D3A" }}>
+            TODAY’S ONE THING
+          </label>
+          <input
+            type="text"
+            value={journal.one || ""}
+            onChange={(e) => setJournal("one", e.target.value)}
+            placeholder="The single most important thing to advance today…"
+            className="mv-input"
+            style={{
+              boxSizing: "border-box",
+              width: "100%",
+              background: "transparent",
+              border: "none",
+              borderBottom: "1px solid #C4D6C9",
+              borderRadius: 0,
+              padding: "9px 2px",
+              color: "#12291E",
+              fontFamily: "Inter, sans-serif",
+              fontSize: 14.5,
+              fontWeight: 600,
+              outline: "none",
+            }}
+          />
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 18 }}>
+          <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2.2, color: "#5F7A6C" }}>
+            EVENING REVIEW
+          </label>
+          <textarea
+            value={journal.review || ""}
+            onChange={(e) => setJournal("review", e.target.value)}
+            placeholder="Wins, falls, lessons — what mattered today?"
+            rows={3}
+            className="mv-input"
+            style={{
+              boxSizing: "border-box",
+              width: "100%",
+              background: "transparent",
+              border: "none",
+              borderBottom: "1px solid #C4D6C9",
+              borderRadius: 0,
+              padding: "9px 2px",
+              color: "#12291E",
+              fontFamily: "Inter, sans-serif",
+              fontSize: 13.5,
+              lineHeight: 1.5,
+              resize: "vertical",
+              outline: "none",
+            }}
+          />
+        </div>
+      </div>
+
       <div style={{ background: "#EDF2EE", borderRadius: 10, padding: "22px 24px" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2.2, color: "#1F4D3A" }}>
             NON-NEGOTIABLES
           </span>
+          {streak > 0 ? (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: 0.5,
+                color: "#1F4D3A",
+                background: "#DCE7DF",
+                padding: "3px 9px",
+                borderRadius: 999,
+              }}
+            >
+              🔥 {streak}-DAY STREAK
+            </span>
+          ) : null}
           <span style={{ flex: 1 }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: "#1F4D3A" }}>
             {dailyCount} / {DAILY.length}

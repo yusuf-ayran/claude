@@ -17,12 +17,15 @@ export function fmtDate(iso: string): string {
 
 export type Edits = Record<string, { label?: string; due?: string }>;
 export type Entry = { date: string; scores: Record<string, number>; bottleneck: string };
+export type JournalEntry = { one?: string; review?: string };
 
 // Per-user synced state — the part that lives in the cloud DB.
 export type SyncedState = {
   done: Record<string, string>; // milestoneId/krId -> ISO completion date ("" allowed legacy)
   daily: Record<string, boolean>; // itemIndex ("d0".."d5") -> true
   dailyDate: string; // resets when the calendar date changes
+  dailyLog: Record<string, number>; // dateISO -> count of non-negotiables done that day
+  journal: Record<string, JournalEntry>; // dateISO -> { one thing, evening review }
   edits: Edits; // milestoneId -> {label?, due?} overrides
   entries: Entry[]; // scorecard history, upsert by date
   scores: Record<string, number>; // current slider positions
@@ -51,12 +54,52 @@ export function normalizeState(raw: unknown, todayISO: string): SyncedState {
     done,
     daily,
     dailyDate: todayISO,
+    dailyLog: saved.dailyLog && typeof saved.dailyLog === "object" ? saved.dailyLog : {},
+    journal: saved.journal && typeof saved.journal === "object" ? saved.journal : {},
     edits: saved.edits && typeof saved.edits === "object" ? saved.edits : {},
     entries: Array.isArray(saved.entries) ? saved.entries : [],
     scores,
     bottleneck: typeof saved.bottleneck === "string" ? saved.bottleneck : "",
     updatedAt: typeof saved.updatedAt === "string" ? saved.updatedAt : EPOCH,
   };
+}
+
+// Add/subtract whole days from an ISO date (YYYY-MM-DD).
+export function shiftISO(iso: string, days: number): string {
+  const d = new Date(iso + "T12:00:00");
+  d.setDate(d.getDate() + days);
+  return toISO(d);
+}
+
+// Current streak of days where all `goal` non-negotiables were done, counting
+// back from today (today counts once it's complete; otherwise the run is
+// measured up to yesterday so an unfinished today doesn't break it).
+export function computeStreak(
+  dailyLog: Record<string, number>,
+  todayISO: string,
+  goal: number,
+): number {
+  let streak = 0;
+  let cursor = (dailyLog[todayISO] || 0) >= goal ? todayISO : shiftISO(todayISO, -1);
+  while ((dailyLog[cursor] || 0) >= goal) {
+    streak++;
+    cursor = shiftISO(cursor, -1);
+  }
+  return streak;
+}
+
+// The last `n` days (oldest→newest) with their completion count.
+export function recentDaily(
+  dailyLog: Record<string, number>,
+  todayISO: string,
+  n: number,
+): { iso: string; count: number }[] {
+  const out: { iso: string; count: number }[] = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const iso = shiftISO(todayISO, -i);
+    out.push({ iso, count: dailyLog[iso] || 0 });
+  }
+  return out;
 }
 
 export function loadLocal(todayISO: string): SyncedState {

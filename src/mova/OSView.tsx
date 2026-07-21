@@ -1,5 +1,5 @@
 import { CATS, DAILY } from "./data";
-import { fmtDate, type SyncedState } from "./model";
+import { computeStreak, fmtDate, recentDaily, type SyncedState } from "./model";
 import { CheckRow, Kicker } from "./bits";
 
 const PROTOCOL: [string, string][] = [
@@ -42,11 +42,48 @@ export function OSView({
     if (state.daily["d" + i]) dailyCount++;
   });
 
+  const todayISO =
+    now.getFullYear() +
+    "-" +
+    String(now.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(now.getDate()).padStart(2, "0");
+
   const entries = state.entries.slice(0, 10).map((e) => {
     const vals = Object.values(e.scores || {});
     const avg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "—";
     return { dateLabel: fmtDate(e.date), avg, bottleneck: e.bottleneck || "—" };
   });
+
+  // Momentum: streak, last-7-days completion, 30-day rate.
+  const streak = computeStreak(state.dailyLog, todayISO, DAILY.length);
+  const last7 = recentDaily(state.dailyLog, todayISO, 7);
+  const last30 = recentDaily(state.dailyLog, todayISO, 30);
+  const logged30 = last30.filter((d) => state.dailyLog[d.iso] !== undefined);
+  const rate30 = logged30.length
+    ? Math.round((logged30.reduce((s, d) => s + d.count, 0) / (logged30.length * DAILY.length)) * 100)
+    : 0;
+
+  // Scorecard trend: average score per saved week, oldest → newest.
+  const trend = [...state.entries]
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+    .map((e) => {
+      const vals = Object.values(e.scores || {});
+      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+    });
+  const trendPts = trend.length >= 2 ? trend : [];
+  const trendW = 240;
+  const trendH = 46;
+  const trendPath =
+    trendPts.length >= 2
+      ? trendPts
+          .map((v, i) => {
+            const x = (i / (trendPts.length - 1)) * trendW;
+            const y = trendH - ((v - 1) / 9) * trendH;
+            return (i === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1);
+          })
+          .join(" ")
+      : "";
 
   const openGCal = () => {
     const d = new Date(now);
@@ -141,6 +178,79 @@ export function OSView({
               onToggle={() => toggleDaily(i)}
             />
           ))}
+        </div>
+      </div>
+
+      {/* Momentum — streak, last 7 days, 30-day rate, scorecard trend */}
+      <div style={{ background: "#EDF2EE", borderRadius: 12, padding: 24 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+          <Kicker>MOMENTUM</Kicker>
+          <span style={{ flex: 1 }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#1F4D3A" }}>
+            🔥 {streak}-day streak
+          </span>
+        </div>
+        <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ fontSize: 9.5, letterSpacing: 1.6, fontWeight: 700, color: "#5F7A6C", marginBottom: 8 }}>
+              LAST 7 DAYS
+            </div>
+            <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 44 }}>
+              {last7.map((d) => {
+                const h = 6 + (d.count / DAILY.length) * 38;
+                const full = d.count >= DAILY.length;
+                const isToday = d.iso === todayISO;
+                return (
+                  <div key={d.iso} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+                    <div
+                      title={`${d.count}/${DAILY.length}`}
+                      style={{
+                        width: "100%",
+                        maxWidth: 22,
+                        height: h,
+                        borderRadius: 4,
+                        background: full ? "#1F4D3A" : d.count > 0 ? "#A3C0AC" : "#DCE7DF",
+                        border: isToday ? "1.5px solid #1F4D3A" : "none",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: 0.5, color: isToday ? "#1F4D3A" : "#A9BBB0" }}>
+                      {["S", "M", "T", "W", "T", "F", "S"][new Date(d.iso + "T12:00:00").getDay()]}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: 11, color: "#5F7A6C", marginTop: 12 }}>
+              <span style={{ fontWeight: 700, color: "#1F4D3A" }}>{rate30}%</span> of non-negotiables
+              done over the last 30 days
+            </div>
+          </div>
+          {trendPath ? (
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontSize: 9.5, letterSpacing: 1.6, fontWeight: 700, color: "#5F7A6C", marginBottom: 8 }}>
+                SCORECARD TREND · AVG /10
+              </div>
+              <svg width="100%" viewBox={`0 0 ${trendW} ${trendH}`} preserveAspectRatio="none" style={{ display: "block", height: 46 }}>
+                <path d={trendPath} fill="none" stroke="#1F4D3A" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                <span style={{ fontSize: 10, color: "#A9BBB0" }}>{trend.length} weeks</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#1F4D3A" }}>
+                  now {trend[trend.length - 1].toFixed(1)}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontSize: 9.5, letterSpacing: 1.6, fontWeight: 700, color: "#5F7A6C", marginBottom: 8 }}>
+                SCORECARD TREND
+              </div>
+              <div style={{ fontSize: 11.5, color: "#5F7A6C", lineHeight: 1.5 }}>
+                Save a couple of Sunday scorecards and your 10-area average will chart here.
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
