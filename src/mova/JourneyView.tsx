@@ -125,6 +125,65 @@ export function JourneyView({
     }
   }
 
+  // ── Milestone roadmap: one bar per year, arrow-flags on the important
+  // dates, and a "YOU ARE HERE" marker at today. Reads as the path ahead. ──
+  const dnum = (iso: string) => new Date(iso + "T12:00:00").getTime();
+  const yearSpan = (y: string) => ({
+    start: y === "2026" ? "2026-07-01" : y + "-01-01",
+    end: y + "-12-31",
+  });
+  const spanFrac = (iso: string, s: { start: string; end: string }) =>
+    Math.max(0, Math.min(1, (dnum(iso) - dnum(s.start)) / (dnum(s.end) - dnum(s.start))));
+  type RoadMs = { id: string; label: string; due: string; done: boolean; overdue: boolean };
+  const allMs: RoadMs[] = [];
+  for (const Y of YEARS)
+    for (const Q of Y.quarters)
+      for (const M of Q.milestones) {
+        const due = msDue(edits, Q, M.id);
+        const dn = isDone(done, M.id);
+        allMs.push({ id: M.id, label: edits[M.id]?.label || M.label, due, done: dn, overdue: !dn && due < todayISO });
+      }
+  const nextId =
+    allMs
+      .filter((m) => !m.done)
+      .sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : 0))[0]?.id ?? null;
+  const clampYear = (due: string) => {
+    const y = due.slice(0, 4);
+    return y < "2026" ? "2026" : y > "2030" ? "2030" : y;
+  };
+  const roadYears = YEARS.map((Y) => {
+    const span = yearSpan(Y.year);
+    const isCur = todayISO >= span.start && todayISO <= span.end;
+    const elapsed = todayISO < span.start ? 0 : todayISO > span.end ? 1 : spanFrac(todayISO, span);
+    const byDate = new Map<string, RoadMs[]>();
+    for (const m of allMs.filter((x) => clampYear(x.due) === Y.year)) {
+      const arr = byDate.get(m.due) || [];
+      arr.push(m);
+      byDate.set(m.due, arr);
+    }
+    const flags = [...byDate.entries()]
+      .map(([iso, items]) => ({ iso, frac: spanFrac(iso, span), items }))
+      .sort((a, b) => a.frac - b.frac);
+    const maxStack = flags.reduce(
+      (n, f) => Math.max(n, Math.min(3, f.items.length) + (f.items.length > 3 ? 1 : 0)),
+      1,
+    );
+    return {
+      year: Y.year,
+      theme: Y.theme,
+      elapsed,
+      todayFrac: isCur ? spanFrac(todayISO, span) : null,
+      flags,
+      maxStack,
+    };
+  });
+  const flagColor = (items: RoadMs[]) =>
+    items.some((m) => m.overdue) ? "#B0654F" : items.some((m) => !m.done) ? "#12291E" : "#1F4D3A";
+  const anchorTransform = (frac: number) =>
+    frac < 0.12 ? "translateX(0)" : frac > 0.88 ? "translateX(-100%)" : "translateX(-50%)";
+  const anchorAlign = (frac: number): "flex-start" | "center" | "flex-end" =>
+    frac < 0.12 ? "flex-start" : frac > 0.88 ? "flex-end" : "center";
+
   // Selected-day detail panel.
   let sel: {
     date: string;
@@ -314,6 +373,180 @@ export function JourneyView({
           <span style={{ fontSize: 11, fontWeight: 700, color: "#1F4D3A" }}>
             DAY {dayNum} OF {totalDays} · {pctThrough}%
           </span>
+        </div>
+
+        {/* Milestone roadmap — arrow-flags on the important dates */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 26, marginBottom: 22 }}>
+          {roadYears.map((ry) => (
+            <div key={ry.year}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#5F7A6C" }}>{ry.year}</span>
+                <span style={{ fontSize: 9, letterSpacing: 1.6, fontWeight: 700, color: "#A9BBB0" }}>
+                  {ry.theme}
+                </span>
+              </div>
+              {/* arrow-marks + YOU ARE HERE above the bar */}
+              <div style={{ position: "relative", height: 26 }}>
+                {ry.flags.map((f) => (
+                  <span
+                    key={f.iso}
+                    style={{
+                      position: "absolute",
+                      left: f.frac * 100 + "%",
+                      bottom: 0,
+                      transform: "translateX(-50%)",
+                      fontSize: 12,
+                      lineHeight: 1,
+                      color: flagColor(f.items),
+                    }}
+                  >
+                    ▾
+                  </span>
+                ))}
+                {ry.todayFrac != null ? (
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: ry.todayFrac * 100 + "%",
+                      bottom: 0,
+                      transform: anchorTransform(ry.todayFrac),
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: anchorAlign(ry.todayFrac),
+                      gap: 1,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 8.5,
+                        fontWeight: 700,
+                        letterSpacing: 1,
+                        color: "#1F4D3A",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      YOU ARE HERE
+                    </span>
+                    <span style={{ fontSize: 12, lineHeight: 1, color: "#1F4D3A" }}>▾</span>
+                  </div>
+                ) : null}
+              </div>
+              {/* the year bar */}
+              <div style={{ position: "relative", height: 10, background: "#E3EBE5", borderRadius: 5 }}>
+                <div
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: ry.elapsed * 100 + "%",
+                    background: "#A3C0AC",
+                    borderRadius: 5,
+                    transition: "width .6s ease",
+                  }}
+                />
+                {ry.flags.map((f) => (
+                  <span
+                    key={f.iso}
+                    style={{
+                      position: "absolute",
+                      left: f.frac * 100 + "%",
+                      top: -2,
+                      transform: "translateX(-50%)",
+                      width: 3,
+                      height: 14,
+                      borderRadius: 2,
+                      background: flagColor(f.items),
+                    }}
+                  />
+                ))}
+                {ry.todayFrac != null ? (
+                  <span
+                    title="Today"
+                    style={{
+                      position: "absolute",
+                      left: ry.todayFrac * 100 + "%",
+                      top: -3,
+                      transform: "translateX(-50%)",
+                      width: 12,
+                      height: 12,
+                      borderRadius: "50%",
+                      background: "#1F4D3A",
+                      boxShadow: "0 0 0 2px #FDFDFB,0 0 0 3.5px #1F4D3A",
+                    }}
+                  />
+                ) : null}
+              </div>
+              {/* milestone names for the year — a tidy wrapping list */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
+                {ry.flags
+                  .flatMap((f) => f.items.map((m) => ({ ...m })))
+                  .map((m) => {
+                    const isNext = m.id === nextId;
+                    const bg = m.done
+                      ? "#EDF2EE"
+                      : m.overdue
+                        ? "rgba(176,101,79,.08)"
+                        : isNext
+                          ? "#DCE7DF"
+                          : "#FDFDFB";
+                    const border = m.done
+                      ? "#C4D6C9"
+                      : m.overdue
+                        ? "rgba(176,101,79,.4)"
+                        : isNext
+                          ? "#1F4D3A"
+                          : "#D9E2DC";
+                    const color = m.done ? "#1F4D3A" : m.overdue ? "#B0654F" : "#12291E";
+                    return (
+                      <span
+                        key={m.id}
+                        onClick={() => ui.setSelDay(ui.selDay === m.due ? null : m.due)}
+                        style={{
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          padding: "5px 10px",
+                          borderRadius: 999,
+                          background: bg,
+                          border: `1px solid ${border}`,
+                          fontSize: 11,
+                          lineHeight: 1.2,
+                          fontWeight: isNext ? 700 : 500,
+                          color,
+                        }}
+                      >
+                        <span style={{ color: m.done ? "#1F4D3A" : m.overdue ? "#B0654F" : "#A3C0AC" }}>
+                          {m.done ? "✓" : "★"}
+                        </span>
+                        {m.label}
+                        {isNext ? (
+                          <span style={{ color: "#1F4D3A", fontWeight: 700, letterSpacing: 0.5 }}>
+                            {" "}
+                            · NEXT
+                          </span>
+                        ) : null}
+                      </span>
+                    );
+                  })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div
+          style={{
+            fontSize: 9,
+            letterSpacing: 1.6,
+            fontWeight: 700,
+            color: "#A9BBB0",
+            marginBottom: 12,
+            borderTop: "1px solid #D9E2DC",
+            paddingTop: 16,
+          }}
+        >
+          EVERY DAY COUNTS
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {dayYears.map((dy) => (
