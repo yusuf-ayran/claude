@@ -13,32 +13,36 @@ Live URL: https://yusuf-ayran.github.io/claude/
 
 ## How sync works
 
-- All app state lives in one JSONB row per user in Supabase
-  (`public.app_state`), protected by Row Level Security.
+This is a **single-user app with no login**. All app state lives in ONE shared
+row in Supabase (`public.solo_state`) that the public (anon) key reads and
+writes. Every device running the app connects to that same row automatically —
+no sign-in, no magic link.
+
 - The browser's localStorage is an offline cache — the app always works, and
-  every change is written through to Supabase (debounced, last-write-wins)
-  when signed in.
-- Sign-in is a Supabase **email magic link** (single-user app). Sign in with
-  the same email on phone + laptop and both show the same state; the app
-  re-fetches whenever the tab regains focus.
+  every change is written through to Supabase (debounced, last-write-wins).
+- On load and whenever the tab regains focus, the app pulls the latest row, so
+  phone and laptop stay in step.
+- **Trade-off:** because the app is on a public URL with a public anon key,
+  anyone who has both could read/write this row. That is acceptable here
+  because only the owner uses the app. (For a multi-user version, restore
+  auth + per-user rows.)
 
 ## One-time Supabase setup (~2 minutes)
 
 1. Create a free project at https://supabase.com.
-2. In the project's **SQL Editor**, paste and run `supabase/schema.sql`.
-3. In **Authentication → URL Configuration**, set the Site URL to the app's
-   deployed URL (and add it to Redirect URLs).
-4. Get the **Project URL** and **anon (public) key** from
-   **Settings → API**.
-5. Either:
+2. In the project's **SQL Editor**, paste and run `supabase/schema.sql`
+   (creates the `solo_state` table).
+3. Get the **Project URL** and **anon (public) key** from **Settings → API**.
+4. Either:
    - add them as GitHub **repository variables** named `SUPABASE_URL` and
      `SUPABASE_ANON_KEY` (Settings → Secrets and variables → Actions →
      Variables) and re-run the deploy workflow — the connection is then baked
      into the site for every device, **or**
    - open the app, tap the small **“LOCAL ONLY · SET UP SYNC”** control in
      the footer, and paste both values there (stored per device).
-6. In the footer sync panel, enter your email → **SEND MAGIC LINK** → open
-   the link. Repeat once per device.
+
+No authentication step — once the database is connected, every device syncs
+automatically.
 
 ## Development
 
