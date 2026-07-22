@@ -158,6 +158,7 @@ export function MovaApp() {
     >
       {/* Sticky header */}
       <div
+        className="mv-appheader"
         style={{
           position: "sticky",
           top: 0,
@@ -250,7 +251,7 @@ export function MovaApp() {
       {tab === "compass" ? <CompassView /> : null}
 
       {/* Footer */}
-      <div style={{ marginTop: "auto" }}>
+      <div className="mv-appfooter" style={{ marginTop: "auto" }}>
         <div
           style={{
             position: "relative",

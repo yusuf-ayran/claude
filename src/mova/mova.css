@@ -10,6 +10,28 @@ body {
   font-family: Inter, Helvetica, Arial, sans-serif;
 }
 
+/* Installed-app polish: keep the sticky header/footer clear of the notch and
+ * home indicator, and stop iOS from inflating tapped text. */
+.mv-appheader {
+  padding-top: env(safe-area-inset-top);
+}
+.mv-appfooter {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+html {
+  -webkit-text-size-adjust: 100%;
+}
+@media (display-mode: standalone) {
+  body {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  input,
+  textarea {
+    user-select: text;
+  }
+}
+
 ::selection {
   background: #dce7df;
   color: #12291e;

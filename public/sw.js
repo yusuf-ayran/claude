@@ -3,7 +3,7 @@
 // always picked up when online), cache-first for hashed build assets (safe —
 // their filenames change on every build), and an offline fallback to the
 // cached app shell. Bump CACHE to invalidate everything on a breaking change.
-const CACHE = "mova-v1";
+const CACHE = "mova-v2";
 const SHELL = ["./", "./index.html", "./favicon.svg", "./manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
