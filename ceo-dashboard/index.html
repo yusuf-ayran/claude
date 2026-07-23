@@ -1,0 +1,1018 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CEO — Client Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════ tokens ═══════════════════════════ */
+:root{
+  --bg0:#05100F; --bg1:#0A1F1C;
+  --panel:#0D3B36; --panel-soft:rgba(13,59,54,.38);
+  --ink:#F4F6F5; --ink2:#93ABA5; --ink3:#587A73;
+  --hair:rgba(244,246,245,.09); --hair-strong:rgba(244,246,245,.18);
+  --accent:#2ECFB8; --accent-deep:#1FA898;
+  --on-accent:#05100F;
+  --prev:#5C7A75;
+  --danger:#E08D79;
+  --glow:color-mix(in srgb, var(--accent) 16%, transparent);
+  --glow-soft:color-mix(in srgb, var(--accent) 9%, transparent);
+  --sans:"Inter","SF Pro Text",-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+}
+@media (prefers-color-scheme: light){
+  :root{
+    --bg0:#F7F9F8; --bg1:#EDF3F1; --panel:#FFFFFF; --panel-soft:rgba(11,21,19,.045);
+    --ink:#0B1513; --ink2:#5C7A74; --ink3:#9AB1AB;
+    --hair:rgba(11,21,19,.10); --hair-strong:rgba(11,21,19,.2);
+    --accent:#12907F; --accent-deep:#0D6E61; --on-accent:#F7F9F8; --prev:#9AB1AB;
+  }
+}
+:root[data-theme="dark"]{
+  --bg0:#05100F; --bg1:#0A1F1C; --panel:#0D3B36; --panel-soft:rgba(13,59,54,.38);
+  --ink:#F4F6F5; --ink2:#93ABA5; --ink3:#587A73;
+  --hair:rgba(244,246,245,.09); --hair-strong:rgba(244,246,245,.18);
+  --accent:#2ECFB8; --accent-deep:#1FA898; --on-accent:#05100F; --prev:#5C7A75;
+}
+:root[data-theme="light"]{
+  --bg0:#F7F9F8; --bg1:#EDF3F1; --panel:#FFFFFF; --panel-soft:rgba(11,21,19,.045);
+  --ink:#0B1513; --ink2:#5C7A74; --ink3:#9AB1AB;
+  --hair:rgba(11,21,19,.10); --hair-strong:rgba(11,21,19,.2);
+  --accent:#12907F; --accent-deep:#0D6E61; --on-accent:#F7F9F8; --prev:#9AB1AB;
+}
+
+/* ═══════════════════════════ base ═══════════════════════════ */
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh;
+  background:linear-gradient(160deg,var(--bg0),var(--bg1) 55%,var(--bg0));
+  background-attachment:fixed;
+  color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--glow)}
+button{font-family:inherit; cursor:pointer}
+button:focus-visible, a:focus-visible, [tabindex]:focus-visible{outline:1.5px solid var(--accent); outline-offset:3px; border-radius:4px}
+.num{font-variant-numeric:tabular-nums}
+.kicker{font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--ink3)}
+
+/* ═══════════════════════════ shell ═══════════════════════════ */
+.app{display:flex; min-height:100vh}
+
+/* ——— sidebar ——— */
+.side{
+  width:236px; flex:none; display:flex; flex-direction:column;
+  border-right:1px solid var(--hair); padding:22px 14px 18px;
+  transition:width .32s ease; position:sticky; top:0; height:100vh; overflow:hidden;
+}
+.side .client{display:flex; align-items:center; gap:12px; padding:4px 8px 22px; border-bottom:1px solid var(--hair); margin-bottom:18px; white-space:nowrap}
+.mono{
+  width:36px; height:36px; flex:none; border-radius:10px; display:grid; place-items:center;
+  background:var(--panel-soft); box-shadow:inset 0 0 0 1px var(--hair);
+  font-size:12px; font-weight:600; letter-spacing:.06em; color:var(--ink2);
+}
+.side .who{min-width:0; opacity:1; transition:opacity .25s ease}
+.side .who b{display:block; font-size:13.5px; font-weight:600; letter-spacing:-.01em; overflow:hidden; text-overflow:ellipsis}
+.side .who span{display:block; font-size:11px; color:var(--ink3); margin-top:1px; overflow:hidden; text-overflow:ellipsis}
+nav{display:flex; flex-direction:column; gap:2px}
+.nav-it{
+  display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:8px;
+  color:var(--ink2); font-size:13px; font-weight:500; background:none; border:0; text-align:left;
+  position:relative; white-space:nowrap; transition:color .25s ease, background .25s ease;
+}
+.nav-it:hover{color:var(--ink)}
+.nav-it.active{color:var(--ink); background:var(--panel-soft); box-shadow:inset 0 0 20px var(--glow-soft)}
+.nav-it.active::before{content:""; position:absolute; left:0; top:50%; transform:translateY(-50%);
+  width:3px; height:16px; border-radius:2px; background:var(--accent); box-shadow:0 0 10px var(--glow)}
+.nav-it svg{flex:none}
+.nav-it .lbl{opacity:1; transition:opacity .2s ease}
+.side .foot{margin-top:auto; padding:16px 8px 0; border-top:1px solid var(--hair); display:flex; align-items:center; justify-content:space-between; gap:8px; white-space:nowrap}
+.brand{display:inline-flex; align-items:center; gap:9px; color:var(--ink2)}
+.brand .bars{display:flex; flex-direction:column; gap:3px}
+.brand .bars i{display:block; height:2px; border-radius:2px; background:currentColor}
+.brand .bars i:nth-child(1){width:15px}
+.brand .bars i:nth-child(2){width:10px}
+.brand .bars i:nth-child(3){width:6px; background:var(--accent)}
+.brand b{font-size:11px; font-weight:700; letter-spacing:.28em; margin-right:-.28em}
+.brand .lbl{opacity:1; transition:opacity .2s ease}
+.collapse-btn{background:none; border:0; color:var(--ink3); padding:6px; border-radius:6px; display:grid; place-items:center; transition:color .25s ease}
+.collapse-btn:hover{color:var(--ink)}
+.collapse-btn svg{transition:transform .32s ease}
+
+.app.collapsed .side{width:68px; padding-left:10px; padding-right:10px}
+.app.collapsed .who,.app.collapsed .nav-it .lbl,.app.collapsed .brand{opacity:0; pointer-events:none}
+.app.collapsed .side .client{padding-left:6px}
+.app.collapsed .side .foot{justify-content:center}
+.app.collapsed .collapse-btn svg{transform:rotate(180deg)}
+
+/* ——— main / topbar ——— */
+.main{flex:1; min-width:0; display:flex; flex-direction:column}
+.topbar{
+  display:flex; align-items:center; gap:10px; padding:14px clamp(18px,3.5vw,44px);
+  border-bottom:1px solid var(--hair); position:sticky; top:0; z-index:40;
+  background:color-mix(in srgb, var(--bg0) 82%, transparent); backdrop-filter:blur(14px);
+}
+.topbar .crumb{font-size:12.5px; color:var(--ink3); letter-spacing:.02em; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.topbar .crumb b{color:var(--ink2); font-weight:500}
+.topbar .grow{flex:1}
+.hamb{display:none}
+
+.dd{position:relative}
+.dd-btn{
+  display:inline-flex; align-items:center; gap:9px; background:none; border:0; border-radius:8px;
+  padding:8px 12px; color:var(--ink2); font-size:12.5px; font-weight:500; letter-spacing:.01em;
+  transition:color .25s ease, background .25s ease; white-space:nowrap;
+}
+.dd-btn:hover{color:var(--ink); background:var(--panel-soft)}
+.dd-btn .chev{transition:transform .25s ease; color:var(--ink3)}
+.dd.open .dd-btn{color:var(--ink); background:var(--panel-soft)}
+.dd.open .chev{transform:rotate(180deg)}
+.dd-panel{
+  position:absolute; top:calc(100% + 8px); right:0; min-width:230px; z-index:60;
+  background:color-mix(in srgb, var(--bg1) 92%, var(--panel)); border:1px solid var(--hair-strong); border-radius:12px;
+  padding:6px; box-shadow:0 18px 50px rgba(0,0,0,.45), 0 0 30px var(--glow-soft);
+  opacity:0; transform:translateY(-4px); pointer-events:none; transition:opacity .22s ease, transform .22s ease;
+}
+.dd.open .dd-panel{opacity:1; transform:none; pointer-events:auto}
+.dd-item{
+  display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:0;
+  padding:9px 11px; border-radius:8px; color:var(--ink2); font-size:13px; transition:background .2s ease, color .2s ease;
+}
+.dd-item:hover{background:var(--panel-soft); color:var(--ink)}
+.dd-item.sel{color:var(--ink)}
+.dd-item.sel::after{content:""; width:5px; height:5px; border-radius:50%; background:var(--accent); margin-left:auto; box-shadow:0 0 8px var(--glow)}
+.dd-item .sub{display:block; font-size:11px; color:var(--ink3); margin-top:1px}
+.dd-head{padding:9px 11px 5px; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--ink3); font-weight:600}
+.dd-sep{height:1px; background:var(--hair); margin:5px 8px}
+.tag{font-size:9.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--ink3); margin-left:auto; padding-left:10px}
+.tag.on{color:var(--accent)}
+
+.icon-btn{position:relative; background:none; border:0; color:var(--ink2); padding:9px; border-radius:8px; display:grid; place-items:center; transition:color .25s ease, background .25s ease}
+.icon-btn:hover{color:var(--ink); background:var(--panel-soft)}
+.icon-btn .dot{position:absolute; top:7px; right:7px; width:6px; height:6px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--glow)}
+.avatar{width:28px; height:28px; border-radius:50%; display:grid; place-items:center; box-shadow:inset 0 0 0 1px var(--hair-strong); font-size:10px; font-weight:600; letter-spacing:.05em; color:var(--ink2)}
+
+.notif{display:flex; gap:12px; padding:11px 11px; border-radius:8px}
+.notif:hover{background:var(--panel-soft)}
+.notif .nbar{width:3px; border-radius:2px; background:var(--accent); opacity:.85; flex:none; margin:2px 0}
+.notif .nbar.dim{background:var(--ink3); opacity:.5}
+.notif b{display:block; font-size:12.5px; font-weight:500; color:var(--ink)}
+.notif span{display:block; font-size:11.5px; color:var(--ink3); margin-top:2px; line-height:1.45}
+
+/* ——— content ——— */
+.content{flex:1; padding:0 clamp(18px,3.5vw,44px) 56px; max-width:1240px; width:100%; margin:0 auto}
+.screen-head{position:relative; padding:38px 0 8px}
+.screen-head.textured::before{content:""; position:absolute; inset:-14px -60px 0; background-image:var(--grain); opacity:.04; pointer-events:none}
+.screen-head.textured::after{content:""; position:absolute; top:-160px; right:-120px; width:480px; height:440px; border-radius:50%;
+  background:radial-gradient(closest-side, var(--glow-soft), transparent 70%); filter:blur(30px); pointer-events:none}
+.screen-head h1{font-size:clamp(24px,3vw,31px); font-weight:650; letter-spacing:-.022em; margin:10px 0 8px; position:relative}
+.screen-head .narrative{font-size:14px; color:var(--ink2); max-width:60ch; margin:0; position:relative}
+.narrative b{color:var(--ink); font-weight:500}
+
+.hairline{border:0; border-top:1px solid var(--hair); margin:0}
+
+/* KPI band */
+.kpis{display:grid; grid-template-columns:repeat(4,1fr); margin-top:34px; border-top:1px solid var(--hair); border-bottom:1px solid var(--hair)}
+.kpi{padding:26px 26px 24px 0; border-left:1px solid var(--hair); padding-left:26px; min-width:0}
+.kpi:first-child{border-left:0; padding-left:0}
+.kpi .big{font-size:clamp(34px,3.6vw,50px); font-weight:200; letter-spacing:-.03em; line-height:1; margin:14px 0 10px; font-variant-numeric:tabular-nums}
+.kpi .delta{font-size:12px; font-weight:500; font-variant-numeric:tabular-nums; color:var(--accent)}
+.kpi .delta.down{color:var(--ink2)}
+.kpi .delta i{font-style:normal; font-size:8.5px; vertical-align:1.5px; margin-right:2px}
+.kpi .spark{margin-top:16px; height:26px}
+.kpi .spark svg{display:block; width:100%; height:26px; overflow:visible}
+
+/* two-column asymmetric band */
+.band{display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:clamp(28px,4vw,64px); padding:40px 0 8px}
+.band .col-head{display:flex; align-items:baseline; justify-content:space-between; gap:14px; margin-bottom:22px}
+.band h2{font-size:17px; font-weight:600; letter-spacing:-.012em; margin:0}
+.chart-host svg{display:block; width:100%; height:auto}
+.chart-host{position:relative}
+
+/* activity feed */
+.feed{display:flex; flex-direction:column}
+.feed .item{display:flex; gap:14px; padding:13px 0; border-top:1px solid var(--hair)}
+.feed .item:first-child{border-top:0}
+.feed .fbar{width:3px; border-radius:2px; flex:none; margin:3px 0; background:var(--ink3); opacity:.5}
+.feed .item.hl .fbar{background:var(--accent); opacity:.9; box-shadow:0 0 8px var(--glow)}
+.feed .fk{font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--ink3)}
+.feed .item.hl .fk{color:var(--accent)}
+.feed b{display:block; font-size:13px; font-weight:500; margin:3px 0 2px; letter-spacing:-.005em}
+.feed span{font-size:11.5px; color:var(--ink3)}
+
+/* controls row (analytics) */
+.controls{display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:26px 0 4px}
+.chip{background:none; border:0; border-radius:999px; padding:7px 14px; font-size:12px; font-weight:500; color:var(--ink2);
+  box-shadow:inset 0 0 0 1px var(--hair); transition:all .25s ease}
+.chip:hover{color:var(--ink); box-shadow:inset 0 0 0 1px var(--hair-strong)}
+.chip.on{color:var(--on-accent); background:var(--accent); box-shadow:0 0 16px var(--glow)}
+.controls .spacer{flex:1}
+.switch-wrap{display:flex; align-items:center; gap:10px; font-size:12px; color:var(--ink2)}
+.tgl{position:relative; width:36px; height:20px; border-radius:999px; background:var(--hair-strong); border:0; transition:background .3s ease; flex:none}
+.tgl::after{content:""; position:absolute; top:3px; left:3px; width:14px; height:14px; border-radius:50%; background:var(--ink); transition:transform .3s ease}
+.tgl[aria-pressed="true"]{background:var(--accent-deep); box-shadow:0 0 12px var(--glow)}
+.tgl[aria-pressed="true"]::after{transform:translateX(16px); background:#F4F6F5}
+
+/* analytics charts */
+.duo{display:grid; grid-template-columns:minmax(0,7fr) minmax(0,5fr); gap:clamp(28px,4vw,64px); padding:26px 0 4px}
+.hbars .row{display:grid; grid-template-columns:88px 1fr auto; gap:14px; align-items:center; padding:11px 0}
+.hbars .row .lbl{font-size:12.5px; color:var(--ink2); font-weight:500}
+.hbars .track{position:relative; display:block; min-width:0}
+.hbars .bar{display:block; height:7px; border-radius:0 4px 4px 0; background:linear-gradient(90deg,var(--accent-deep),var(--accent));
+  box-shadow:0 0 10px var(--glow-soft); transition:width .6s ease; min-width:2px}
+.hbars .bar.prev{display:block; height:3px; background:var(--prev); box-shadow:none; margin-top:4px; opacity:.7}
+.hbars .val{font-size:12.5px; font-variant-numeric:tabular-nums; color:var(--ink); text-align:right; min-width:58px}
+.hbars .val small{display:block; font-size:10.5px; color:var(--ink3)}
+.legend{display:flex; gap:18px; font-size:11px; color:var(--ink3); margin-top:16px}
+.legend i{display:inline-block; width:12px; height:3px; border-radius:2px; vertical-align:2px; margin-right:7px}
+
+/* table */
+.tbl-wrap{overflow-x:auto; margin-top:8px}
+table.tbl{border-collapse:collapse; width:100%; font-size:13px; min-width:640px}
+.tbl th{text-align:left; padding:0 18px 11px 0; border-bottom:1px solid var(--hair-strong); white-space:nowrap}
+.tbl th button{background:none; border:0; padding:0; font-size:10.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink3); font-weight:600; display:inline-flex; align-items:center; gap:6px; transition:color .2s ease}
+.tbl th button:hover{color:var(--ink2)}
+.tbl th button.on{color:var(--ink)}
+.tbl th button .arr{font-size:8px}
+.tbl td{padding:13px 18px 13px 0; border-bottom:1px solid var(--hair); color:var(--ink2); font-variant-numeric:tabular-nums; white-space:nowrap}
+.tbl td.t{color:var(--ink); white-space:normal; min-width:220px}
+.tbl tr{transition:background .2s ease}
+.tbl tbody tr:hover td{color:var(--ink)}
+.tbl .r{text-align:right; padding-right:0}
+.tbl th.r{text-align:right}
+.tbl .pos{color:var(--accent)}
+.tbl .ch{font-size:11px; color:var(--ink3)}
+
+/* reports */
+.rep-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:20px; padding:30px 0}
+.rep{border:1px solid var(--hair); border-radius:14px; padding:22px 22px 18px; display:flex; flex-direction:column; gap:8px;
+  transition:border-color .3s ease, box-shadow .3s ease; background:transparent}
+.rep:hover{border-color:var(--hair-strong); box-shadow:0 0 26px var(--glow-soft)}
+.rep .rk{display:flex; justify-content:space-between; align-items:center}
+.rep b{font-size:14.5px; font-weight:600; letter-spacing:-.012em}
+.rep .meta{font-size:11.5px; color:var(--ink3)}
+.rep .acts{display:flex; gap:4px; margin-top:12px; padding-top:12px; border-top:1px solid var(--hair)}
+.rep .acts button{background:none; border:0; color:var(--ink2); font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; padding:6px 10px; border-radius:6px; transition:color .2s ease}
+.rep .acts button:hover{color:var(--accent)}
+.rep.generating{border-style:dashed}
+.rep .genbars{display:flex; flex-direction:column; gap:6px; padding:10px 0 4px}
+.rep .genbars i{display:block; height:6px; border-radius:2px; background:var(--hair-strong); animation:pulse 1.6s ease-in-out infinite}
+.rep .genbars i:nth-child(2){width:70%; animation-delay:.18s}
+.rep .genbars i:nth-child(3){width:44%; animation-delay:.36s}
+
+/* buttons */
+.btn{appearance:none; border:0; border-radius:8px; font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase;
+  padding:12px 22px; transition:box-shadow .3s ease, background .3s ease, color .3s ease}
+.btn-primary{background:var(--accent-deep); color:#F4F6F5}
+.btn-primary:hover{box-shadow:0 0 24px var(--glow); background:var(--accent); color:var(--on-accent)}
+.btn-primary[disabled]{opacity:.4; cursor:default; box-shadow:none}
+.btn-ghost{background:transparent; color:var(--ink); box-shadow:inset 0 0 0 1px var(--hair-strong)}
+.btn-ghost:hover{box-shadow:inset 0 0 0 1px var(--accent), 0 0 18px var(--glow)}
+
+/* settings */
+.set-sec{display:grid; grid-template-columns:minmax(200px,300px) minmax(0,1fr); gap:clamp(24px,4vw,72px); padding:38px 0; border-top:1px solid var(--hair)}
+.set-sec:first-of-type{border-top:0}
+.set-sec h2{font-size:16px; font-weight:600; letter-spacing:-.012em; margin:0 0 7px}
+.set-sec .desc{font-size:12.5px; color:var(--ink2); line-height:1.6; max-width:40ch}
+.field{margin-bottom:20px}
+.field label{display:block; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink3); font-weight:600; margin-bottom:8px}
+.field input[type=text]{width:100%; max-width:380px; background:transparent; border:0; border-bottom:1px solid var(--hair-strong); color:var(--ink);
+  font:inherit; font-size:14px; padding:8px 0; transition:border-color .3s ease}
+.field input[type=text]:focus{outline:none; border-color:var(--accent)}
+.profile-row{display:flex; gap:18px; align-items:center; margin-bottom:26px}
+.profile-row .mono{width:56px; height:56px; border-radius:14px; font-size:16px}
+.profile-row .pn b{display:block; font-size:15px; font-weight:600}
+.profile-row .pn span{font-size:12px; color:var(--ink3)}
+.accent-row{display:flex; gap:38px; flex-wrap:wrap}
+.acc{width:44px; height:44px; border-radius:12px; border:0; position:relative; cursor:pointer; box-shadow:inset 0 0 0 1px var(--hair-strong); transition:box-shadow .25s ease}
+.acc.sel{box-shadow:0 0 0 1.5px var(--accent), 0 0 18px var(--glow)}
+.acc span{position:absolute; left:50%; bottom:-22px; transform:translateX(-50%); font-size:10px; color:var(--ink3); white-space:nowrap; letter-spacing:.04em}
+.accent-row{margin-bottom:30px}
+.team-row{display:flex; align-items:center; gap:14px; padding:13px 0; border-top:1px solid var(--hair)}
+.team-row:first-child{border-top:0}
+.team-row .avatar{width:32px; height:32px; font-size:11px}
+.team-row .tn{flex:1; min-width:0}
+.team-row .tn b{display:block; font-size:13px; font-weight:500}
+.team-row .tn span{font-size:11.5px; color:var(--ink3)}
+.role-pill{font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--ink2); padding:5px 11px; border-radius:999px; box-shadow:inset 0 0 0 1px var(--hair)}
+.pref-row{display:flex; align-items:center; justify-content:space-between; gap:20px; padding:14px 0; border-top:1px solid var(--hair)}
+.pref-row:first-child{border-top:0}
+.pref-row .pt b{display:block; font-size:13.5px; font-weight:500}
+.pref-row .pt span{font-size:12px; color:var(--ink3)}
+
+/* states */
+.state{min-height:52vh; display:grid; place-items:center; text-align:center; padding:40px 20px}
+.state .inner{max-width:400px}
+.state .bars3{display:flex; flex-direction:column; gap:6px; width:52px; margin:0 auto 26px; opacity:.4}
+.state .bars3 i{display:block; height:3.5px; border-radius:2px; background:var(--ink2)}
+.state .bars3 i:nth-child(1){width:52px}
+.state .bars3 i:nth-child(2){width:34px}
+.state .bars3 i:nth-child(3){width:18px}
+.state.err .bars3 i{background:var(--danger)}
+.state h2{font-size:19px; font-weight:600; letter-spacing:-.015em; margin:0 0 10px}
+.state p{font-size:13px; color:var(--ink2); line-height:1.65; margin:0 0 26px}
+.state .kicker{margin-bottom:16px; display:block}
+
+/* skeletons */
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:.85}}
+.sk{display:flex; flex-direction:column; gap:8px}
+.sk i{display:block; height:8px; border-radius:2px; background:var(--hair-strong); animation:pulse 1.6s ease-in-out infinite}
+.sk-kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:40px; padding:60px 0}
+.sk-block{padding:30px 0}
+.fade-in{animation:fadein .45s ease}
+@keyframes fadein{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
+
+/* tooltip + toast */
+#tip{position:fixed; z-index:90; pointer-events:none; opacity:0; transition:opacity .18s ease;
+  background:color-mix(in srgb, var(--bg1) 94%, var(--panel)); border:1px solid var(--hair-strong); border-radius:9px;
+  padding:9px 12px; font-size:11.5px; color:var(--ink2); box-shadow:0 10px 30px rgba(0,0,0,.4)}
+#tip b{display:block; color:var(--ink); font-size:13px; font-weight:600; font-variant-numeric:tabular-nums}
+#tip .pv{color:var(--ink3); font-variant-numeric:tabular-nums}
+#toast{position:fixed; left:50%; bottom:28px; transform:translate(-50%,16px); z-index:95; opacity:0; pointer-events:none;
+  transition:opacity .3s ease, transform .3s ease; background:color-mix(in srgb, var(--bg1) 92%, var(--panel));
+  border:1px solid var(--hair-strong); border-radius:10px; padding:12px 20px; font-size:12.5px; color:var(--ink);
+  box-shadow:0 14px 40px rgba(0,0,0,.45), 0 0 24px var(--glow-soft)}
+#toast.show{opacity:1; transform:translate(-50%,0)}
+
+/* page footer */
+.confid{padding:44px 0 0; display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; font-size:11px; color:var(--ink3); letter-spacing:.04em}
+
+/* responsive */
+@media (max-width:1020px){
+  .kpis{grid-template-columns:1fr 1fr}
+  .kpi:nth-child(3){border-left:0; padding-left:0}
+  .kpi:nth-child(1),.kpi:nth-child(2){border-bottom:1px solid var(--hair)}
+  .band{grid-template-columns:1fr}
+  .duo{grid-template-columns:1fr}
+}
+@media (max-width:880px){
+  .side{position:fixed; z-index:70; left:0; transform:translateX(-105%); transition:transform .32s ease; background:var(--bg0); width:250px}
+  .app.side-open .side{transform:none; box-shadow:30px 0 80px rgba(0,0,0,.5)}
+  .hamb{display:grid}
+  .topbar .crumb{display:none}
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.01ms !important; transition-duration:.01ms !important}
+}
+</style>
+
+<div class="app" id="app">
+  <aside class="side" id="side">
+    <div class="client" id="side-client"></div>
+    <nav id="nav" aria-label="Main"></nav>
+    <div class="foot">
+      <span class="brand" title="Managed by CEO"><span class="bars"><i></i><i></i><i></i></span><b class="lbl">CEO</b></span>
+      <button class="collapse-btn" id="collapse" aria-label="Collapse sidebar">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10 3L5 8l5 5"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="icon-btn hamb" id="hamb" aria-label="Open menu">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 6h14M3 10h10M3 14h6"/></svg>
+      </button>
+      <span class="crumb" id="crumb"></span>
+      <span class="grow"></span>
+      <div class="dd" id="dd-range">
+        <button class="dd-btn" aria-haspopup="true">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></svg>
+          <span id="range-lbl"></span>
+          <svg class="chev" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 3.5L5 6.5l3-3"/></svg>
+        </button>
+        <div class="dd-panel" id="range-panel" role="menu"></div>
+      </div>
+      <div class="dd" id="dd-client">
+        <button class="dd-btn" aria-haspopup="true">
+          <span id="client-lbl"></span>
+          <svg class="chev" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 3.5L5 6.5l3-3"/></svg>
+        </button>
+        <div class="dd-panel" id="client-panel" role="menu"></div>
+      </div>
+      <div class="dd" id="dd-notif">
+        <button class="icon-btn" aria-label="Notifications" aria-haspopup="true">
+          <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2.5a4.5 4.5 0 0 0-4.5 4.5c0 3.6-1.5 5-1.5 5h12s-1.5-1.4-1.5-5A4.5 4.5 0 0 0 9 2.5z"/><path d="M7.5 14.5a1.6 1.6 0 0 0 3 0"/></svg>
+          <span class="dot"></span>
+        </button>
+        <div class="dd-panel" style="min-width:300px" id="notif-panel">
+          <div class="dd-head">Notifications</div>
+          <div class="notif"><span class="nbar"></span><div><b>Arab News mention detected</b><span>"Voices shaping the Kingdom's investment decade" — sentiment positive · 2h ago</span></div></div>
+          <div class="notif"><span class="nbar"></span><div><b>Q2 presence report is ready</b><span>Quarterly report generated and available in Reports · yesterday</span></div></div>
+          <div class="notif"><span class="nbar dim"></span><div><b>Weekly digest sent</b><span>Delivered to your private office · Sun 19 Jul</span></div></div>
+        </div>
+      </div>
+      <div class="dd" id="dd-profile">
+        <button class="icon-btn" aria-label="Account" aria-haspopup="true"><span class="avatar">RS</span></button>
+        <div class="dd-panel" id="profile-panel">
+          <div class="dd-head">Reem Al‑Saleh · Client Strategy Director</div>
+          <button class="dd-item">Account preferences</button>
+          <button class="dd-item">CEO internal console</button>
+          <div class="dd-sep"></div>
+          <button class="dd-item">Sign out</button>
+        </div>
+      </div>
+    </div>
+    <div class="content" id="content" aria-live="polite"></div>
+  </div>
+</div>
+
+<div id="tip" role="presentation"></div>
+<div id="toast" role="status"></div>
+
+<script>
+/* ═══════════════════════════ data ═══════════════════════════ */
+const TODAY = new Date(2026, 6, 23);
+const CHANNELS = ["LinkedIn","X","Press","Podcast","YouTube"];
+
+const CLIENTS = [
+  {id:"faisal", name:"Faisal Al‑Otaibi", role:"Founder & Chief Executive, Mada Capital", seed:7,  status:"active",     mix:[.38,.27,.19,.12,.04]},
+  {id:"noura",  name:"Noura Al‑Zahrani", role:"Managing Partner, Sidra Ventures",        seed:13, status:"active",     mix:[.44,.18,.14,.20,.04]},
+  {id:"khalid", name:"Khalid Al‑Harbi",  role:"Senior Advisor, Public Sector",           seed:3,  status:"onboarding", mix:[.3,.3,.3,.1,0]},
+  {id:"lina",   name:"Lina Haddad",      role:"Board Director",                          seed:5,  status:"restricted", mix:[.3,.3,.3,.1,0]},
+];
+
+const RANGES = [
+  {id:"30",  label:"Last 30 days",   days:30},
+  {id:"90",  label:"Last 90 days",   days:90},
+  {id:"180", label:"Last 6 months",  days:180},
+  {id:"365", label:"Last 12 months", days:365},
+];
+
+const SCREENS = [
+  {id:"overview",  label:"Overview",  icon:'<path d="M3 5h14M3 10h9M3 15h5"/>'},
+  {id:"analytics", label:"Analytics", icon:'<path d="M3 16h14M5 12v4M10 7v9M15 3v13"/>'},
+  {id:"reports",   label:"Reports",   icon:'<path d="M6 3h8l3 3v11H6zM9 9h5M9 13h5"/>'},
+  {id:"settings",  label:"Settings",  icon:'<path d="M3 6h14M3 14h14"/><circle cx="8" cy="6" r="2"/><circle cx="13" cy="14" r="2"/>'},
+];
+
+const TITLES = {
+  LinkedIn:["On sovereign capital discipline","Why patient capital wins the decade","Notes from the FII stage","Building institutions, not headlines","The quiet work of governance","What founders owe their boards"],
+  X:["LEAP keynote clip","Thread: the Kingdom's talent equation","On the giga‑project supply chain","Remarks on fiscal discipline","A note on long‑term thinking"],
+  Press:["Vision 2030 panel remarks — Arab News","Interview: Asharq Business","Profile: Saudi Gazette weekend","Comment in Argaam markets brief","CNBC Arabia studio segment"],
+  Podcast:["The Majlis — episode 41","Capital Notes with Faisal","Socrates in the Gulf — guest hour","Founders of the Peninsula, ep. 12"],
+  YouTube:["FII session recording","Fireside: the next operating decade"],
+};
+
+const ACCENTS = [
+  {id:"teal",   label:"Signature teal", dark:["#2ECFB8","#1FA898"], light:["#12907F","#0D6E61"]},
+  {id:"gold",   label:"Desert gold",    dark:["#D4B36A","#B2934E"], light:["#8A6F2F","#6E5825"]},
+  {id:"steel",  label:"Steel blue",     dark:["#7FB6D9","#5E96BA"], light:["#2F6B8E","#245672"]},
+  {id:"silver", label:"Graphite",       dark:["#B9C6C2","#93A39E"], light:["#4E625D","#3D4E4A"]},
+];
+
+/* deterministic prng — data is a stable fixture per client+range */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+function seriesFor(client, days, offset=0){
+  const rnd = mulberry32(client.seed*1000 + days + offset*77);
+  const base = 14000 + client.seed*2600;
+  const pts=[]; let level = base*(offset? .84 : 1);
+  for(let i=0;i<days;i++){
+    const dow=(i+3)%7, weekly=(dow===4||dow===5)? .78 : 1+(dow===1?.12:0);
+    level += level*( (rnd()-.46)*.06 );
+    const spike = rnd()>.965 ? 1+rnd()*1.6 : 1;
+    pts.push(Math.max(1200, level*weekly*spike*(1+i/days*.25)));
+  }
+  return pts;
+}
+function kpisFor(client, days){
+  const cur=seriesFor(client,days), prev=seriesFor(client,days,1);
+  const sum=a=>a.reduce((x,y)=>x+y,0);
+  const reach=sum(cur), reachP=sum(prev);
+  const rnd=mulberry32(client.seed*31+days);
+  const eng=3.2+rnd()*2.1, engP=eng*(0.9+rnd()*.16);
+  const fol=Math.round(reach*.0011), folP=Math.round(reachP*.00115);
+  const men=Math.round(days/7*(1.1+client.seed*.22)), menP=Math.round(men*(0.82+rnd()*.3));
+  return {cur, prev,
+    cards:[
+      {label:"Reach",           v:fmt(reach),          d:pct(reach,reachP),  spark:bucket(cur,12)},
+      {label:"Engagement rate", v:eng.toFixed(2)+"%",  d:pct(eng,engP),      spark:bucket(cur.map((x,i)=>eng*(0.9+((i*client.seed)%7)/22)),12)},
+      {label:"Follower growth", v:"+"+fmt(fol),        d:pct(fol,folP),      spark:bucket(cur.map(x=>x*.0011),12)},
+      {label:"Media mentions",  v:String(men),         d:pct(men,menP),      spark:bucket(cur.map((x,i)=>((i*7+client.seed)%9)+2),12)},
+    ]};
+}
+function channelRows(client, days){
+  const cur=seriesFor(client,days), prev=seriesFor(client,days,1);
+  const sum=a=>a.reduce((x,y)=>x+y,0);
+  return CHANNELS.map((ch,i)=>({ch, v:sum(cur)*client.mix[i], p:sum(prev)*client.mix[i]*(.8+((client.seed+i)%5)*.09)}));
+}
+function postsFor(client, days){
+  const rnd=mulberry32(client.seed*7+days*3);
+  const rows=[]; const n=Math.min(14, 6+Math.floor(days/22));
+  for(let i=0;i<n;i++){
+    const chIdx=[0,0,1,1,2,3,0,2,1,0,3,2,1,0][i%14];
+    const ch=CHANNELS[chIdx];
+    const t=TITLES[ch][Math.floor(rnd()*TITLES[ch].length)];
+    const d=new Date(TODAY); d.setDate(d.getDate()-Math.floor(rnd()*days*.92)-1);
+    rows.push({title:t, ch, date:d, reach:Math.round(18000+rnd()*430000), eng:+(2+rnd()*4.4).toFixed(2), delta:+((rnd()-.35)*38).toFixed(1)});
+  }
+  const seen=new Set();
+  return rows.filter(r=>{const k=r.title; if(seen.has(k))return false; seen.add(k); return true;});
+}
+function feedFor(client){
+  return [
+    {k:"mention",   hl:true,  t:"Arab News — 'Voices shaping the investment decade'", d:"Today · sentiment positive"},
+    {k:"post",      hl:false, t:"LinkedIn essay — On sovereign capital discipline",   d:"Tue 21 Jul · 188.9K reach"},
+    {k:"milestone", hl:true,  t:"Crossed 250K combined followers",                    d:"Sun 19 Jul"},
+    {k:"post",      hl:false, t:"X thread — the Kingdom's talent equation",           d:"Fri 17 Jul · 96.4K reach"},
+    {k:"mention",   hl:false, t:"Argaam markets brief — comment cited",               d:"Wed 15 Jul"},
+    {k:"post",      hl:false, t:"The Majlis podcast — episode 41",                    d:"Mon 13 Jul · 41K plays"},
+  ];
+}
+
+/* ═══════════════════════════ helpers ═══════════════════════════ */
+const $=s=>document.querySelector(s);
+function fmt(n){ if(n>=1e6) return (n/1e6).toFixed(n>=1e7?0:1)+"M"; if(n>=1e3) return (n/1e3).toFixed(n>=1e5?0:1)+"K"; return String(Math.round(n)); }
+function fmtFull(n){ return Math.round(n).toLocaleString("en-US"); }
+function pct(a,b){ return b? (a-b)/b*100 : 0; }
+function deltaHTML(d){
+  const up=d>=0, cls=up?"":" down", ar=up?"▲":"▼";
+  return `<div class="delta${cls} num"><i>${ar}</i> ${Math.abs(d).toFixed(1)}% vs previous period</div>`;
+}
+function bucket(arr,n){
+  const size=Math.max(1,Math.floor(arr.length/n)), out=[];
+  for(let i=0;i<arr.length;i+=size) out.push(arr.slice(i,i+size).reduce((a,b)=>a+b,0)/Math.min(size,arr.length-i));
+  return out.slice(0,n);
+}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;")}
+function initials(name){ return name.replace(/‑/g,"-").split(/[\s-]+/).filter(w=>/^[A-Z]/.test(w)).map(w=>w[0]).slice(0,2).join(""); }
+function dstr(d){ return d.toLocaleDateString("en-GB",{day:"numeric",month:"short"}); }
+
+function smooth(pts){
+  if(pts.length<3) return "M"+pts.map(p=>p.join(" ")).join(" L");
+  let d=`M${pts[0][0]} ${pts[0][1]}`;
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[Math.max(0,i-1)], p1=pts[i], p2=pts[i+1], p3=pts[Math.min(pts.length-1,i+2)];
+    const c1=[p1[0]+(p2[0]-p0[0])/6, p1[1]+(p2[1]-p0[1])/6];
+    const c2=[p2[0]-(p3[0]-p1[0])/6, p2[1]-(p3[1]-p1[1])/6];
+    d+=` C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+function toPts(data,W,H,pad=4){
+  const min=Math.min(...data), max=Math.max(...data), span=(max-min)||1;
+  return data.map((v,i)=>[pad+i*(W-2*pad)/(data.length-1), H-pad-(v-min)/span*(H-2*pad-6)-3]);
+}
+
+let uid=0;
+function sparkSVG(data){
+  const W=110,H=26, pts=toPts(data,W,H,2), id="g"+(++uid);
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style="stop-color:var(--accent)" stop-opacity=".16"/><stop offset="1" style="stop-color:var(--accent)" stop-opacity="0"/></linearGradient></defs>
+    <path d="${smooth(pts)} L${W-2} ${H} L2 ${H} Z" fill="url(#${id})"/>
+    <path d="${smooth(pts)}" fill="none" style="stroke:var(--accent)" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="2.2" style="fill:var(--accent)"/>
+  </svg>`;
+}
+
+/* main line chart with crosshair + tooltip */
+const chartData={};
+function lineChart(hostId, cur, prev, days){
+  const W=760,H=280,padL=6,padR=14,padB=30;
+  const nb=Math.min(days,daysToBuckets(days));
+  const c=bucket(cur,nb), p=prev?bucket(prev,nb):null;
+  const all=p?c.concat(p):c, min=Math.min(...all)*.94, max=Math.max(...all)*1.04, span=max-min||1;
+  const X=i=>padL+i*(W-padL-padR)/(c.length-1);
+  const Y=v=>H-padB-((v-min)/span)*(H-padB-16);
+  const cp=c.map((v,i)=>[X(i),Y(v)]);
+  const pp=p?p.map((v,i)=>[X(i),Y(v)]):null;
+  const id="lg"+(++uid);
+  const labels=axisLabels(days,c.length);
+  const ticks=labels.map(l=>`<g><path d="M${X(l.i)-7} ${H-12}h14" stroke="var(--ink3)" stroke-width="2" stroke-linecap="round" opacity=".7"/><text x="${X(l.i)}" y="${H-0}" text-anchor="middle" font-size="10" letter-spacing=".08em" fill="var(--ink3)">${l.t}</text></g>`).join("");
+  chartData[hostId]={c,p,X,Y,days,W,H};
+  return `<svg viewBox="0 0 ${W} ${H}" data-chart="${hostId}" role="img" aria-label="Reach over time, teal line on dark background">
+    <defs>
+      <linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" style="stop-color:var(--accent)" stop-opacity=".13"/><stop offset="1" style="stop-color:var(--accent)" stop-opacity="0"/>
+      </linearGradient>
+      <filter id="${id}b" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="5"/></filter>
+    </defs>
+    ${pp?`<path d="${smooth(pp)}" fill="none" stroke="var(--prev)" stroke-width="1.4" opacity=".6"/>`:""}
+    <path d="${smooth(cp)} L${cp[cp.length-1][0]} ${H-padB} L${cp[0][0]} ${H-padB} Z" fill="url(#${id})"/>
+    <path d="${smooth(cp)}" fill="none" style="stroke:var(--accent)" stroke-width="4" filter="url(#${id}b)" opacity=".4"/>
+    <path d="${smooth(cp)}" fill="none" style="stroke:var(--accent)" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="${cp[cp.length-1][0]}" cy="${cp[cp.length-1][1]}" r="3.5" style="fill:var(--accent)"/>
+    <circle cx="${cp[cp.length-1][0]}" cy="${cp[cp.length-1][1]}" r="8" fill="none" style="stroke:var(--accent)" stroke-opacity=".3"/>
+    <path d="M${padL} ${H-padB} H${W-padR}" stroke="var(--hair-strong)" stroke-width="1"/>
+    ${ticks}
+    <line class="xh" x1="0" x2="0" y1="10" y2="${H-padB}" stroke="var(--ink2)" stroke-width="1" stroke-dasharray="1 4" opacity="0"/>
+    <circle class="xhd" r="3" style="fill:var(--accent)" opacity="0"/>
+    <rect class="hover" x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
+  </svg>`;
+}
+function daysToBuckets(days){ return days<=30? 10 : days<=90? 13 : days<=180? 26 : 52; }
+function axisLabels(days, n){
+  const out=[], step=Math.max(1,Math.floor(n/5));
+  for(let i=0;i<n;i+=step){
+    const d=new Date(TODAY); d.setDate(d.getDate()-Math.round((n-1-i)/(n-1)*days));
+    out.push({i, t:days>120? d.toLocaleDateString("en-GB",{month:"short"}).toUpperCase() : dstr(d).toUpperCase()});
+  }
+  return out;
+}
+function wireLineChart(host){
+  const svg=host.querySelector("svg[data-chart]"); if(!svg) return;
+  const d=chartData[svg.dataset.chart], tip=$("#tip");
+  const xh=svg.querySelector(".xh"), xhd=svg.querySelector(".xhd"), hover=svg.querySelector(".hover");
+  hover.addEventListener("mousemove",e=>{
+    const r=svg.getBoundingClientRect(), sx=(e.clientX-r.left)*(d.W/r.width);
+    const i=Math.max(0,Math.min(d.c.length-1,Math.round((sx-6)/( (d.W-20)/(d.c.length-1) ))));
+    const x=d.X(i), y=d.Y(d.c[i]);
+    xh.setAttribute("x1",x); xh.setAttribute("x2",x); xh.style.opacity=.6;
+    xhd.setAttribute("cx",x); xhd.setAttribute("cy",y); xhd.style.opacity=1;
+    const dt=new Date(TODAY); dt.setDate(dt.getDate()-Math.round((d.c.length-1-i)/(d.c.length-1)*d.days));
+    tip.innerHTML=`${dstr(dt)}<b>${fmt(d.c[i])} avg daily reach</b>${d.p?`<span class="pv">prev · ${fmt(d.p[i])}</span>`:""}`;
+    tip.style.opacity=1;
+    const tw=tip.offsetWidth;
+    tip.style.left=Math.min(window.innerWidth-tw-14, Math.max(10, e.clientX-tw/2))+"px";
+    tip.style.top=(e.clientY-tip.offsetHeight-16)+"px";
+  });
+  hover.addEventListener("mouseleave",()=>{ xh.style.opacity=0; xhd.style.opacity=0; tip.style.opacity=0; });
+}
+
+/* ═══════════════════════════ state ═══════════════════════════ */
+const state={
+  screen:"overview", client:CLIENTS[0], range:RANGES[1],
+  platform:"all", compare:true, sort:{key:"reach", dir:-1},
+  collapsed:false, accent:"teal",
+  reports:[
+    {title:"Q2 2026 · Quarterly presence report", meta:"Apr – Jun 2026 · generated 2 Jul 2026", status:"ready"},
+    {title:"June 2026 · Monthly summary",         meta:"1 – 30 Jun 2026 · generated 1 Jul 2026", status:"ready"},
+    {title:"Media coverage dossier",              meta:"FII & LEAP cycle · generated 19 Jun 2026", status:"ready"},
+    {title:"Q1 2026 · Quarterly presence report", meta:"Jan – Mar 2026 · generated 3 Apr 2026", status:"ready"},
+  ],
+};
+
+/* ═══════════════════════════ chrome ═══════════════════════════ */
+function renderChrome(){
+  const c=state.client;
+  $("#side-client").innerHTML=`<span class="mono">${initials(c.name)}</span>
+    <span class="who"><b>${esc(c.name)}</b><span>${esc(c.role)}</span></span>`;
+  $("#nav").innerHTML=SCREENS.map(s=>`
+    <button class="nav-it ${state.screen===s.id?"active":""}" data-screen="${s.id}">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${s.icon}</svg>
+      <span class="lbl">${s.label}</span>
+    </button>`).join("");
+  $("#nav").querySelectorAll("[data-screen]").forEach(b=>b.onclick=()=>{ go(b.dataset.screen); $("#app").classList.remove("side-open"); });
+  $("#crumb").innerHTML=`CEO · Client workspaces &nbsp;/&nbsp; <b>${esc(c.name)}</b>`;
+  $("#range-lbl").textContent=state.range.label;
+  $("#client-lbl").textContent=c.name;
+  $("#range-panel").innerHTML=RANGES.map(r=>`<button class="dd-item ${r.id===state.range.id?"sel":""}" data-r="${r.id}">${r.label}</button>`).join("")+
+    `<div class="dd-sep"></div><button class="dd-item" style="color:var(--ink3)">Custom range…</button>`;
+  $("#range-panel").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{ state.range=RANGES.find(r=>r.id===b.dataset.r); closeDD(); refresh(); });
+  $("#client-panel").innerHTML=`<div class="dd-head">Client workspaces</div>`+CLIENTS.map(cl=>`
+    <button class="dd-item ${cl.id===c.id?"sel":""}" data-c="${cl.id}">
+      <span class="avatar" style="width:26px;height:26px">${initials(cl.name)}</span>
+      <span><span style="display:block; font-weight:500; color:inherit">${esc(cl.name)}</span></span>
+      ${cl.status==="onboarding"?'<span class="tag on">Onboarding</span>':cl.status==="restricted"?'<span class="tag">Restricted</span>':""}
+    </button>`).join("");
+  $("#client-panel").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{ state.client=CLIENTS.find(x=>x.id===b.dataset.c); closeDD(); refresh(); });
+}
+
+function closeDD(){ document.querySelectorAll(".dd.open").forEach(d=>d.classList.remove("open")); }
+document.querySelectorAll(".dd").forEach(dd=>{
+  dd.querySelector(".dd-btn,.icon-btn").addEventListener("click",e=>{
+    e.stopPropagation(); const was=dd.classList.contains("open"); closeDD(); if(!was) dd.classList.add("open");
+  });
+});
+document.addEventListener("click",e=>{ if(!e.target.closest(".dd")) closeDD(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeDD(); });
+
+$("#collapse").onclick=()=>{ state.collapsed=!state.collapsed; $("#app").classList.toggle("collapsed",state.collapsed); };
+$("#hamb").onclick=()=>$("#app").classList.toggle("side-open");
+
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2600); }
+
+/* ═══════════════════════════ screens ═══════════════════════════ */
+function go(screen){ state.screen=screen; refresh(); }
+
+function refresh(){
+  renderChrome();
+  const c=$("#content");
+  if(state.client.status==="restricted"){ c.innerHTML=lockedHTML(); return; }
+  c.innerHTML=skeletonHTML();
+  clearTimeout(refresh._h);
+  refresh._h=setTimeout(()=>{
+    const fn={overview:renderOverview, analytics:renderAnalytics, reports:renderReports, settings:renderSettings}[state.screen];
+    fn(c);
+    c.firstElementChild && c.firstElementChild.classList.add("fade-in");
+  }, 420);
+}
+
+function skeletonHTML(){
+  return `<div>
+    <div class="sk" style="padding:56px 0 0; width:min(340px,70%)"><i style="width:90px; height:6px"></i><i style="width:70%; height:16px; margin-top:8px"></i></div>
+    <div class="sk-kpis">
+      ${'<div class="sk"><i style="width:60px;height:6px"></i><i style="width:80%;height:22px;margin-top:10px"></i><i style="width:45%;height:6px"></i></div>'.repeat(4)}
+    </div>
+    <div class="sk sk-block"><i style="height:6px;width:30%"></i><i style="height:140px; border-radius:6px; opacity:.12; animation-delay:.2s"></i></div>
+  </div>`;
+}
+
+function lockedHTML(){
+  return `<div class="state err fade-in"><div class="inner">
+    <div class="bars3"><i></i><i></i><i></i></div>
+    <span class="kicker">Access restricted</span>
+    <h2>This workspace is private.</h2>
+    <p>${esc(state.client.name)}'s engagement is managed under a restricted mandate. Access requires
+    approval from the account lead and the client's private office.</p>
+    <button class="btn btn-ghost" onclick="toast('Request sent to the account lead.')">Request access</button>
+  </div></div>`;
+}
+function emptyHTML(title,body,cta){
+  return `<div class="state fade-in"><div class="inner">
+    <div class="bars3"><i></i><i></i><i></i></div>
+    <span class="kicker">Onboarding</span>
+    <h2>${title}</h2><p>${body}</p>${cta||""}
+  </div></div>`;
+}
+
+/* ——— overview ——— */
+function renderOverview(c){
+  const cl=state.client, days=state.range.days;
+  if(cl.status==="onboarding"){
+    c.innerHTML=emptyHTML("Monitoring begins shortly.",
+      "Your CEO team is connecting your channels and press monitoring. First signals typically appear within 48 hours — your strategist will walk you through the first reading.",
+      `<button class="btn btn-ghost" onclick="toast('Your strategist has been notified.')">Talk to your strategist</button>`);
+    return;
+  }
+  const k=kpisFor(cl,days);
+  const growth=pct(k.cur.reduce((a,b)=>a+b,0), k.prev.reduce((a,b)=>a+b,0));
+  const rows=channelRows(cl,days); const top=rows.slice().sort((a,b)=>b.v-a.v)[0];
+  c.innerHTML=`<div>
+    <header class="screen-head textured">
+      <span class="kicker">${esc(cl.name)} · ${state.range.label}</span>
+      <h1>Presence overview</h1>
+      <p class="narrative">Reach ${growth>=0?"grew":"softened"} <b>${Math.abs(growth).toFixed(1)}%</b> against the previous
+      period, led by <b>${top.ch}</b>. ${growth>=0?"Momentum is holding — the editorial cadence is working.":"Cadence dipped mid‑period; your strategist has flagged two placements to compensate."}</p>
+    </header>
+
+    <div class="kpis">
+      ${k.cards.map(card=>`
+        <div class="kpi">
+          <span class="kicker">${card.label}</span>
+          <div class="big num">${card.v}</div>
+          ${deltaHTML(card.d)}
+          <div class="spark">${sparkSVG(card.spark)}</div>
+        </div>`).join("")}
+    </div>
+
+    <div class="band">
+      <div>
+        <div class="col-head">
+          <h2>Reach, day by day</h2>
+          <span class="legend" style="margin:0"><span><i style="background:var(--accent)"></i>This period</span><span><i style="background:var(--prev)"></i>Previous</span></span>
+        </div>
+        <div class="chart-host" id="ov-chart">${lineChart("ov", k.cur, k.prev, days)}</div>
+      </div>
+      <div>
+        <div class="col-head"><h2>Activity</h2><button class="btn-text" style="background:none;border:0;color:var(--ink3);font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600" onclick="go('analytics')">View all →</button></div>
+        <div class="feed">
+          ${feedFor(cl).map(f=>`<div class="item ${f.hl?"hl":""}"><span class="fbar"></span><div>
+            <span class="fk">${f.k}</span><b>${esc(f.t)}</b><span>${esc(f.d)}</span></div></div>`).join("")}
+        </div>
+      </div>
+    </div>
+
+    <div class="confid"><span>Prepared for ${esc(cl.name)} by CEO · Confidential</span><span>Riyadh — الرياض</span></div>
+  </div>`;
+  wireLineChart($("#ov-chart"));
+}
+
+/* ——— analytics ——— */
+function renderAnalytics(c){
+  const cl=state.client, days=state.range.days;
+  if(cl.status==="onboarding"){
+    c.innerHTML=emptyHTML("Nothing to analyse yet.",
+      "Analytics unlock after your first tracked placements. Once channels are live, every post, mention and appearance lands here within the hour.");
+    return;
+  }
+  const rows=channelRows(cl,days);
+  const posts=postsFor(cl,days).filter(p=>state.platform==="all"||p.ch===state.platform);
+  const s=state.sort;
+  posts.sort((a,b)=>{
+    const va=a[s.key], vb=b[s.key];
+    return (va>vb?1:va<vb?-1:0)*s.dir;
+  });
+  const maxV=Math.max(...rows.map(r=>Math.max(r.v,r.p)));
+  const mCur=bucket(seriesFor(cl,days),12), mPrev=bucket(seriesFor(cl,days,1),12);
+
+  c.innerHTML=`<div>
+    <header class="screen-head">
+      <span class="kicker">${esc(cl.name)} · ${state.range.label}</span>
+      <h1>Analytics</h1>
+    </header>
+
+    <div class="controls" role="toolbar" aria-label="Filters">
+      <button class="chip ${state.platform==="all"?"on":""}" data-p="all">All channels</button>
+      ${CHANNELS.map(ch=>`<button class="chip ${state.platform===ch?"on":""}" data-p="${ch}">${ch}</button>`).join("")}
+      <span class="spacer"></span>
+      <span class="switch-wrap">Compare vs previous period
+        <button class="tgl" id="cmp" aria-pressed="${state.compare}" aria-label="Compare with previous period"></button>
+      </span>
+    </div>
+    <hr class="hairline" style="margin-top:18px">
+
+    <div class="duo">
+      <div>
+        <div class="col-head"><h2>Reach by channel</h2></div>
+        <div class="hbars">
+          ${rows.map(r=>`
+            <div class="row" data-tip="${r.ch}: ${fmtFull(r.v)} this period${state.compare?" · "+fmtFull(r.p)+" previous":""}">
+              <span class="lbl">${r.ch}</span>
+              <span class="track">
+                <span class="bar" style="width:${r.v/maxV*100}%"></span>
+                ${state.compare?`<span class="bar prev" style="width:${r.p/maxV*100}%"></span>`:""}
+              </span>
+              <span class="val num">${r.v>500?fmt(r.v):"—"}${state.compare?`<small>${r.p>500?fmt(r.p)+" prev":""}</small>`:""}</span>
+            </div>`).join("")}
+        </div>
+        ${state.compare?`<div class="legend"><span><i style="background:var(--accent)"></i>This period</span><span><i style="background:var(--prev)"></i>Previous period</span></div>`:""}
+      </div>
+      <div>
+        <div class="col-head"><h2>Reach trend</h2></div>
+        <div class="chart-host" id="an-chart">${lineChart("an", mCur, state.compare?mPrev:null, days)}</div>
+      </div>
+    </div>
+
+    <hr class="hairline" style="margin-top:24px">
+    <div style="padding-top:30px">
+      <div class="col-head"><h2>Placements</h2><span class="kicker num">${posts.length} tracked</span></div>
+      ${posts.length? `
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr>
+          <th><button data-k="title">Content <span class="arr">${s.key==="title"?(s.dir>0?"▲":"▼"):""}</span></button></th>
+          <th><button data-k="ch">Channel</button></th>
+          <th><button data-k="date" class="${s.key==="date"?"on":""}">Date <span class="arr">${s.key==="date"?(s.dir>0?"▲":"▼"):""}</span></button></th>
+          <th class="r"><button data-k="reach" class="${s.key==="reach"?"on":""}">Reach <span class="arr">${s.key==="reach"?(s.dir>0?"▲":"▼"):""}</span></button></th>
+          <th class="r"><button data-k="eng" class="${s.key==="eng"?"on":""}">Engagement <span class="arr">${s.key==="eng"?(s.dir>0?"▲":"▼"):""}</span></button></th>
+          <th class="r"><button data-k="delta" class="${s.key==="delta"?"on":""}">vs avg <span class="arr">${s.key==="delta"?(s.dir>0?"▲":"▼"):""}</span></button></th>
+        </tr></thead>
+        <tbody>
+          ${posts.map(p=>`<tr>
+            <td class="t">${esc(p.title)}</td>
+            <td><span class="ch">${p.ch}</span></td>
+            <td>${dstr(p.date)}</td>
+            <td class="r">${fmtFull(p.reach)}</td>
+            <td class="r">${p.eng.toFixed(2)}%</td>
+            <td class="r ${p.delta>=0?"pos":""}">${p.delta>=0?"+":""}${p.delta.toFixed(1)}%</td>
+          </tr>`).join("")}
+        </tbody>
+      </table></div>`
+      : `<div class="state" style="min-height:30vh"><div class="inner">
+          <div class="bars3"><i></i><i></i><i></i></div>
+          <h2>No placements on ${esc(state.platform)} in this period.</h2>
+          <p>Widen the date range, or ask your strategist about opening this channel — it may simply not be part of the current mandate.</p>
+        </div></div>`}
+    </div>
+    <div class="confid"><span>Prepared for ${esc(cl.name)} by CEO · Confidential</span><span>Riyadh — الرياض</span></div>
+  </div>`;
+
+  c.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{ state.platform=b.dataset.p; renderAnalytics(c); });
+  $("#cmp").onclick=()=>{ state.compare=!state.compare; renderAnalytics(c); };
+  c.querySelectorAll("th [data-k]").forEach(b=>b.onclick=()=>{
+    const k=b.dataset.k;
+    if(state.sort.key===k) state.sort.dir*=-1; else state.sort={key:k, dir:k==="title"||k==="ch"?1:-1};
+    renderAnalytics(c);
+  });
+  wireLineChart($("#an-chart"));
+  const tip=$("#tip");
+  c.querySelectorAll(".hbars .row").forEach(r=>{
+    r.addEventListener("mousemove",e=>{ tip.innerHTML=esc(r.dataset.tip); tip.style.opacity=1;
+      tip.style.left=Math.min(window.innerWidth-tip.offsetWidth-14,e.clientX+14)+"px"; tip.style.top=(e.clientY-34)+"px"; });
+    r.addEventListener("mouseleave",()=>tip.style.opacity=0);
+  });
+}
+
+/* ——— reports ——— */
+function renderReports(c){
+  const cl=state.client;
+  if(cl.status==="onboarding"){
+    c.innerHTML=emptyHTML("Your first report arrives with your first month.",
+      "Reports compile once a full reporting cycle of data exists. Your strategist will present the first one personally.");
+    return;
+  }
+  c.innerHTML=`<div>
+    <header class="screen-head" style="display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap">
+      <div>
+        <span class="kicker">${esc(cl.name)}</span>
+        <h1>Reports</h1>
+        <p class="narrative">Board‑ready summaries of your public presence, compiled by your CEO team.</p>
+      </div>
+      <button class="btn btn-primary" id="gen">Generate report</button>
+    </header>
+    <div class="rep-grid" id="rep-grid">
+      ${state.reports.map((r,i)=>r.status==="generating"?`
+        <div class="rep generating">
+          <div class="rk"><b>${esc(r.title)}</b><span class="tag on">Compiling</span></div>
+          <span class="meta">${esc(r.meta)}</span>
+          <div class="genbars"><i></i><i></i><i></i></div>
+        </div>`:`
+        <div class="rep">
+          <div class="rk"><b>${esc(r.title)}</b></div>
+          <span class="meta">${esc(r.meta)}</span>
+          <div class="acts">
+            <button data-dl="pdf" data-i="${i}">PDF ↓</button>
+            <button data-dl="csv" data-i="${i}">CSV ↓</button>
+          </div>
+        </div>`).join("")}
+    </div>
+    <div class="confid"><span>Prepared for ${esc(cl.name)} by CEO · Confidential</span><span>Riyadh — الرياض</span></div>
+  </div>`;
+  $("#gen").onclick=()=>{
+    if(state.reports.some(r=>r.status==="generating")) { toast("A report is already compiling."); return; }
+    state.reports.unshift({title:"July 2026 · Interim report", meta:`1 – 23 Jul 2026 · requested just now`, status:"generating"});
+    renderReports(c);
+    setTimeout(()=>{ const r=state.reports.find(x=>x.status==="generating");
+      if(r){ r.status="ready"; r.meta="1 – 23 Jul 2026 · generated just now"; if(state.screen==="reports") renderReports(c); toast("Report ready."); } }, 2800);
+  };
+  c.querySelectorAll("[data-dl]").forEach(b=>b.onclick=()=>{
+    if(b.dataset.dl==="csv"){
+      const posts=postsFor(cl,90);
+      const csv="content,channel,date,reach,engagement\n"+posts.map(p=>`"${p.title}",${p.ch},${p.date.toISOString().slice(0,10)},${Math.round(p.reach)},${p.eng}`).join("\n");
+      const a=document.createElement("a");
+      a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+      a.download="ceo-report.csv"; a.click(); URL.revokeObjectURL(a.href);
+      toast("CSV downloaded.");
+    } else toast("PDF queued — it will arrive by email.");
+  });
+}
+
+/* ——— settings ——— */
+function renderSettings(c){
+  const cl=state.client;
+  c.innerHTML=`<div>
+    <header class="screen-head">
+      <span class="kicker">${esc(cl.name)}</span>
+      <h1>Settings</h1>
+    </header>
+
+    <section class="set-sec">
+      <div><h2>Profile</h2><p class="desc">How you appear across reports and the workspace. Changes are reviewed by your CEO strategist before publication surfaces update.</p></div>
+      <div>
+        <div class="profile-row">
+          <span class="mono">${initials(cl.name)}</span>
+          <div class="pn"><b>${esc(cl.name)}</b><span>${esc(cl.role)}</span></div>
+          <button class="btn btn-ghost" style="margin-left:auto" onclick="toast('Photo upload opens here.')">Change photo</button>
+        </div>
+        <div class="field"><label for="f-name">Display name</label><input id="f-name" type="text" value="${esc(cl.name)}"></div>
+        <div class="field"><label for="f-role">Title</label><input id="f-role" type="text" value="${esc(cl.role)}"></div>
+      </div>
+    </section>
+
+    <section class="set-sec">
+      <div><h2>Workspace accent</h2><p class="desc">An optional white‑label accent for this client's workspace and exported reports. The CEO shell — type, layout, dark ground — stays fixed.</p></div>
+      <div>
+        <div class="accent-row">
+          ${ACCENTS.map(a=>`<button class="acc ${state.accent===a.id?"sel":""}" data-a="${a.id}" aria-label="${a.label}"
+            style="background:linear-gradient(135deg,${a.dark[1]},${a.dark[0]})"><span>${a.label}</span></button>`).join("")}
+        </div>
+        <p class="desc" style="max-width:52ch">Applied instantly here; report templates update on the next generation cycle.</p>
+      </div>
+    </section>
+
+    <section class="set-sec">
+      <div><h2>Team access</h2><p class="desc">People who can view this workspace. Only the account lead can grant access.</p></div>
+      <div>
+        <div class="team-row"><span class="avatar">RS</span><div class="tn"><b>Reem Al‑Saleh</b><span>reem@ceo.sa</span></div><span class="role-pill">Account lead</span></div>
+        <div class="team-row"><span class="avatar">TQ</span><div class="tn"><b>Tariq Qasim</b><span>tariq@ceo.sa</span></div><span class="role-pill">Analyst</span></div>
+        <div class="team-row"><span class="avatar">${initials(cl.name)}</span><div class="tn"><b>${esc(cl.name)}</b><span>Private office</span></div><span class="role-pill">Client</span></div>
+        <div style="margin-top:18px"><button class="btn btn-ghost" onclick="toast('Invitation flow opens here.')">Invite member</button></div>
+      </div>
+    </section>
+
+    <section class="set-sec">
+      <div><h2>Notifications</h2><p class="desc">What reaches you, and when. Everything else stays in the workspace.</p></div>
+      <div>
+        ${[["Press mentions","The moment coverage is detected, with sentiment.",true],
+           ["Weekly digest","A composed summary, Sunday morning.",true],
+           ["Report delivery","When a new report is generated.",true],
+           ["Milestones","Follower and reach thresholds.",false]].map(([t,d,on],i)=>`
+          <div class="pref-row"><div class="pt"><b>${t}</b><span>${d}</span></div>
+            <button class="tgl" aria-pressed="${on}" aria-label="${t}" onclick="this.setAttribute('aria-pressed', this.getAttribute('aria-pressed')==='true'?'false':'true')"></button>
+          </div>`).join("")}
+      </div>
+    </section>
+    <div class="confid"><span>Prepared for ${esc(cl.name)} by CEO · Confidential</span><span>Riyadh — الرياض</span></div>
+  </div>`;
+  c.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{
+    state.accent=b.dataset.a;
+    const a=ACCENTS.find(x=>x.id===state.accent);
+    const dark=matchMedia("(prefers-color-scheme: dark)").matches;
+    const th=document.documentElement.dataset.theme;
+    const useDark=th? th==="dark" : dark;
+    const pair=useDark? a.dark : a.light;
+    document.documentElement.style.setProperty("--accent", pair[0]);
+    document.documentElement.style.setProperty("--accent-deep", pair[1]);
+    renderSettings(c);
+    toast(`Workspace accent set to ${a.label.toLowerCase()}.`);
+  });
+}
+
+/* ═══════════════════════════ boot ═══════════════════════════ */
+const h=location.hash.replace("#","");
+if(SCREENS.some(s=>s.id===h)) state.screen=h;
+const _go=go; go=s=>{ history.replaceState(null,"","#"+s); _go(s); };
+refresh();
+</script>
