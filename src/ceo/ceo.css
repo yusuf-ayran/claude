@@ -1,0 +1,44 @@
+/* CEO Client Briefing — global surface + hover/focus states.
+ * Inline styles carry layout (handoff prototype convention); these classes
+ * carry the states inline styles can't express, so they use !important to win.
+ * Transitions are color/border only — no transform or lift (handoff §Interactions). */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #0b1413;
+}
+
+::selection {
+  background: rgba(63, 184, 165, 0.3);
+}
+
+a {
+  color: #3fb8a5;
+  text-decoration: none;
+}
+a:hover {
+  color: #5ecdbb;
+}
+
+.ceo-link:hover {
+  color: #5ecdbb !important;
+}
+
+.ceo-btn-primary:hover {
+  background: #5ecdbb !important;
+  border-color: #5ecdbb !important;
+}
+
+.ceo-btn-ghost:hover {
+  color: #e8efed !important;
+  border-color: rgba(232, 239, 237, 0.4) !important;
+}
+
+/* Visible keyboard focus (the prototype relies on the browser default; keep an
+ * on-brand ring so the portal is operable without a mouse). */
+button:focus-visible {
+  outline: 2px solid #3fb8a5;
+  outline-offset: 3px;
+}
